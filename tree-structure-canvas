@@ -44,8 +44,11 @@ this.currentElementHover = undefined;
 this.currentElementSelected = undefined;
 
 this.mouseUp = false;
-this.dragCanvasElement.style.width = this.width+'px';
-this.dragCanvasElement.style.height=this.height + 'px';
+//this.dragCanvasElement.style.width = this.width+'px';
+//this.dragCanvasElement.style.height=this.height + 'px';
+this.dragCanvasElement.width = this.width;
+this.dragCanvasElement.height=this.height;
+this.dragCanvasElement.style.display = 'none';
 
 this.wholeDrawingContentMap = {};
 
@@ -87,7 +90,7 @@ this.lastEndY+this.elementWidthY;
 }
 }
 wholeDrawing[childElement]['endY'] = wholeDrawing[childElement]['startY'] + this.height;
-//this.drawConnections(currentElement,childElement);
+this.drawConnections(currentElement,childElement);
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap'][childElement]);
 });
 }else{
@@ -182,18 +185,7 @@ this.currentElementHover = undefined;
 this.addChildButtonHover = undefined;
 this.mouseMove = true;
 
-if(this.currentElementSelected !== undefined && !this.mouseUp){
-this.dragCanvasElement.style.marginLeft=this.mouseMoveX+10+ 'px';
-this.dragCanvasElement.style.marginTop=this.mouseMoveY+10+ 'px';
-
- this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
- var elementMap = this.wholeDrawingContentMap['nodeMap'][elementId];
-if(this.drawRectange(elementMap['startX'], elementMap['startY'] , elementMap['endX'] , elementMap['endY'] ,null,this.mouseMoveX , this.mouseMoveY)){
-this.currentElementHoverAtDrag = elementMap;
- }
-});
-
-}else{
+if(this.currentElementSelected === undefined || this.mouseUp){
  this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
  var elementMap = this.wholeDrawingContentMap['nodeMap'][elementId];
 if(this.drawRectange(elementMap['startX'], elementMap['startY'] , elementMap['endX'] , elementMap['endY'] ,null,this.mouseMoveX , this.mouseMoveY)){
@@ -204,6 +196,18 @@ this.currentElementHover= elementMap;
  }
 });
 this.redraw();
+}else if(!this.mouseUp){
+this.mouseDownMouseMove = true;
+this.dragCanvasElement.style.marginLeft=this.mouseMoveX+10+ 'px';
+this.dragCanvasElement.style.marginTop=this.mouseMoveY+10+ 'px';
+this.dragCanvasElement.style.display = 'block';
+
+this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
+ var elementMapAtDrag = this.wholeDrawingContentMap['nodeMap'][elementId];
+if(this.drawRectange(elementMapAtDrag['startX'], elementMapAtDrag['startY'] , elementMapAtDrag['endX'] , elementMapAtDrag['endY'] ,null,this.mouseMoveX , this.mouseMoveY)){
+this.currentElementHoverAtDrag= elementMapAtDrag;
+ }
+});
 }
 }
 
@@ -212,28 +216,42 @@ function mouseUpFunction(event) {
 this.mouseUpX = event.offsetX;
 this.mouseUpY = event.offsetY;
 this.mouseUp = true;
-if(this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !== undefined && this.mouseMove){
- this.wholeDrawingContentMap['nodeMap'][this.currentElementSelected['parentId']]['childList'].pop(this.currentElementSelected['uniqueId']);
- this.wholeDrawingContentMap['nodeMap'][this.currentElementHoverAtDrag['uniqueId']]['childList'].push(this.currentElementSelected['uniqueId']);
- this.wholeDrawingContentMap['nodeMap'][this.currentElementSelected['uniqueId']]['parentId']=this.currentElementHoverAtDrag['uniqueId'];
-console.log( 'Drag : '+this.currentElementHoverAtDrag['uniqueId'] + ' Selected : '+ this.currentElementSelected['uniqueId']);
-console.log(this.wholeDrawingContentMap['nodeMap']);
+this.mouseDown = false;
+this.dragCanvasElement.style.display = 'none';
+
+if(this.mouseDownMouseMove){
+if(this.currentElementHoverAtDrag['uniqueId'] !== this.currentElementSelected['uniqueId'] && 
+ this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !== undefined){
+ var drawingElementMap = this.wholeDrawingContentMap['nodeMap'];
+ var selectedElementUniqueId = this.currentElementSelected['uniqueId'];
+ var selectedElementParentUniqueId = this.currentElementSelected['parentId'];
+ var currentElementHoverAtDragUniqueId = this.currentElementHoverAtDrag['uniqueId'];
+ var parentElementChildIdList = JSON.parse(JSON.stringify(drawingElementMap[selectedElementParentUniqueId]['childList']));
+ var newChildIdList = this.arrayElementRemove(parentElementChildIdList,selectedElementUniqueId);
+ drawingElementMap[selectedElementParentUniqueId]['childList']= newChildIdList;
+ drawingElementMap[currentElementHoverAtDragUniqueId]['childList'].push(selectedElementUniqueId);
+ drawingElementMap[selectedElementUniqueId]['parentId']=currentElementHoverAtDragUniqueId;
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
 this.redraw();
 }
-this.mouseMove = false;
+}
 }
 
+function arrayElementRemove(array , item){
+return array.filter(function(element){
+return item !== element;
+});
+}
 
 function mouseDownFunction(event){
-this.mouseMove = false;
 this.mouseDownX = event.offsetX;
 this.mouseDownY = event.offsetY;
-this.canvas.save();
 this.showButtons = false;
+this.mouseDown = true;
 this.mouseUp = false;
-this.currentElementHoverAtDrag = undefined;
+this.mouseDownMouseMove = false;
 this.currentElementSelected = undefined;
+
 if(this.currentElementHover !== undefined){
 this.showButtons = true;
 this.currentElementSelected  = JSON.parse(JSON.stringify(this.currentElementHover));
@@ -241,9 +259,14 @@ this.currentElementSelected  = JSON.parse(JSON.stringify(this.currentElementHove
 if(this.addChildButtonHover !== undefined){
 this.showButtons = true;
 this.currentElementSelected  = JSON.parse(JSON.stringify(this.addChildButtonHover));
-this.handleAddChildClick(this.addChildButtonHover);
+this.handleAddChildClick(this.currentElementSelected);
 }
-this.canvas.restore();
+if(this.currentElementSelected !== undefined){
+this.dragCanvas.setTransform(1,0,0,1,0,0)
+this.dragCanvas.clearRect(0,0,this.dragCanvasElement.width , this.dragCanvasElement.height)
+ this.dragCanvas.font = "15px Georgia";
+ this.dragCanvas.fillText(this.currentElementSelected['uniqueId'], 2+5, 5+this.height/2);
+}
 this.redraw();
 }
 
@@ -280,7 +303,7 @@ this.canvas.clearRect(0,0,this.canvasElement.width,this.canvasElement.height);
  this.canvas.font = "15px Georgia";
  this.canvas.fillText(currentElement['uniqueId'], startX+5, startY+this.height/2);
 });
-//this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
 }
 
 
