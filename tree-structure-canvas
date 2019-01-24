@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#drag-cavas-element {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: -1;
+}
+</style>
+</head>
+
+<body>
+<div id="main-element-div"  style="height:650px; width:1300px;" onscroll="scrollFunction(event)">
+<div id="inner-element-div">
+<canvas id="main-canvas-element" width="1290" height="640" style="border:1px solid #000000;" onmousemove="mouseMoveFunction(event)" onmousedown = "mouseDownFunction(event)" onmouseup="mouseUpFunction(event)">
+</canvas>
+</div>
+</div>
+<canvas id ="drag-cavas-element" width="50" height="50" style="border:1px solid #000000;"></canvas>
+
+</body>
+
+<script>
+
+this.canvasElement= document.getElementById("main-canvas-element");
+this.innerElementDiv= document.getElementById("inner-element-div");
+this.mainElementDiv= document.getElementById("main-element-div");
+this.dragCanvasElement =document.getElementById("drag-cavas-element");
+this.dragCanvas = this.dragCanvasElement.getContext("2d");
+this.canvas = this.canvasElement.getContext("2d");
+this.width = 180;
+this.height = 25;
+this.noChild =false;
+this.elementWidthX = 30;
+this.elementWidthY = 10;
+this.radius= 6 ;
+this.elementArcX= 6;
+this.elementArcY= 11;
+this.showButtons = false;
+this.currentElementHover = undefined;
+this.currentElementSelected = undefined;
+
+this.mouseUp = false;
+this.dragCanvasElement.style.width = this.width+'px';
+this.dragCanvasElement.style.height=this.height + 'px';
+
+this.wholeDrawingContentMap = {};
+
+this.wholeDrawingContentMap={
+'nodeList':['a'],
+'nodeMap' :{
+'a' : {
+'startX':2 ,
+'startY': 2,
+'endX':  this.width+2,
+'endY': this.height+2,
+'uniqueId' : 'a',
+'parentId' : null,
+'childList' : []
+} 
+
+}
+
+};
+
+this.redraw();
+
+function calculatePosition(currentElement){
+ this.innerElementDiv.style.width=currentElement['endX']+'px';
+ this.innerElementDiv.style.height=currentElement['endY']+'px';
+this.mainElementDiv.style.overflow='auto';
+if(currentElement['childList'] !== undefined && currentElement['childList'].length !== 0 ){
+currentElement['childList'].forEach(function(childElement){
+var wholeDrawing = this.wholeDrawingContentMap['nodeMap'];
+wholeDrawing[childElement]['startX'] =  currentElement['endX'] + this.elementWidthX;
+wholeDrawing[childElement]['endX'] = wholeDrawing[childElement]['startX']+this.width;
+if(currentElement['childList'][0] === childElement){
+wholeDrawing[childElement]['startY'] = currentElement['startY'];
+}
+else{
+if(this.lastEndY){
+wholeDrawing[childElement]['startY'] =
+this.lastEndY+this.elementWidthY;
+}
+}
+wholeDrawing[childElement]['endY'] = wholeDrawing[childElement]['startY'] + this.height;
+//this.drawConnections(currentElement,childElement);
+this.calculatePosition(this.wholeDrawingContentMap['nodeMap'][childElement]);
+});
+}else{
+this.noChild = true;
+this.lastEndY = currentElement['endY'];
+}
+}
+
+
+
+function drawConnections(currentElement ,childElement ){
+var wholeDrawing = this.wholeDrawingContentMap['nodeMap'];
+if(wholeDrawing[childElement]['startY'] === currentElement['startY'] ){
+this.canvas.beginPath();
+this.canvas.moveTo(currentElement['endX'],currentElement['startY'] + this.height/2);
+this.canvas.lineTo(wholeDrawing[childElement]['startX'],wholeDrawing[childElement]['startY'] + this.height/2);
+this.canvas.stroke();
+}else {
+this.canvas.beginPath();
+var arrayIndex = currentElement['childList'].indexOf(childElement);
+var lastChildElement = currentElement['childList'][arrayIndex-1];
+this.canvas.moveTo(wholeDrawing[lastChildElement]['startX']-this.elementWidthX/2,wholeDrawing[lastChildElement]['endY'] - this.height/2);
+this.canvas.lineTo(wholeDrawing[childElement]['startX']-this.elementWidthX/2,wholeDrawing[childElement]['startY'] + this.height/2);
+this.canvas.lineTo(wholeDrawing[childElement]['startX'],wholeDrawing[childElement]['startY'] + this.height/2);
+this.canvas.stroke();
+}
+}
+
+
+
+function drawElement(startX, startY , endX , endY,currentElement ,mouseX , mouseY ){
+this.drawRectange(startX, startY , endX , endY,currentElement ,mouseX , mouseY );
+if(this.showButtons){
+this.drawChildButton(startX, startY , endX , endY ,currentElement ,mouseX , mouseY);
+}
+}
+
+
+function drawRectange(startX, startY , endX , endY ,currentElement,mouseX , mouseY){
+this.canvas.beginPath();
+ if(!mouseX &&  this.currentElementHover !==undefined &&  this.currentElementHover['uniqueId'] === currentElement['uniqueId'] ){
+this.canvas.save();
+this.canvas.clearRect(startX,startY,this.width,this.height);
+this.canvas.shadowBlur = 10;
+this.canvas.shadowColor = "black";
+this.canvas.rect(startX,startY,this.width,this.height);
+this.canvas.fillStyle = "white";
+this.canvas.fillRect(startX+1,startY+1,this.width-1,this.height-1);
+this.canvas.restore();
+}
+else{
+this.canvas.rect(startX,startY,this.width,this.height);
+}
+if(!mouseX){
+this.canvas.stroke();
+}
+else{
+return this.canvas.isPointInPath(mouseX,mouseY);
+}
+}
+
+function drawChildButton(startX, startY , endX , endY ,currentElement,mouseX , mouseY){
+if( this.currentElementSelected !==undefined && currentElement !== undefined &&  this.currentElementSelected['uniqueId'] === currentElement['uniqueId'] && !mouseX){
+this.canvas.beginPath();
+this.canvas.arc(endX+this.elementArcX, (startY+(this.height/2)), this.radius, 0, 2 * Math.PI);
+this.canvas.stroke();
+this.canvas.beginPath();
+this.canvas.moveTo(endX+this.elementArcX,(startY+(this.height/2)-this.radius));
+this.canvas.lineTo(endX+this.elementArcX,(startY+(this.height/2))+this.radius);
+this.canvas.moveTo(endX+this.elementArcX-this.radius,(startY+(this.height/2)));
+this.canvas.lineTo(endX+this.elementArcX+this.radius,(startY+this.height/2));
+this.canvas.stroke();
+
+if(this.addChildButtonHover !== undefined){
+this.canvasElement.style.cursor = 'pointer';
+}else{
+this.canvasElement.style.cursor ='context-menu';
+}
+}
+else{
+this.canvas.beginPath();
+this.canvas.rect(endX, (startY+(this.height/2) -this.radius), 2*this.radius , 2*this.radius);
+return this.canvas.isPointInPath(mouseX,mouseY);
+}
+}
+
+function mouseMoveFunction(event){
+this.mouseMoveX = event.offsetX;
+this.mouseMoveY = event.offsetY;
+this.currentElementHoverAtDrag=undefined;
+this.currentElementHover = undefined;
+this.addChildButtonHover = undefined;
+this.mouseMove = true;
+
+if(this.currentElementSelected !== undefined && !this.mouseUp){
+this.dragCanvasElement.style.marginLeft=this.mouseMoveX+10+ 'px';
+this.dragCanvasElement.style.marginTop=this.mouseMoveY+10+ 'px';
+
+ this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
+ var elementMap = this.wholeDrawingContentMap['nodeMap'][elementId];
+if(this.drawRectange(elementMap['startX'], elementMap['startY'] , elementMap['endX'] , elementMap['endY'] ,null,this.mouseMoveX , this.mouseMoveY)){
+this.currentElementHoverAtDrag = elementMap;
+ }
+});
+
+}else{
+ this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
+ var elementMap = this.wholeDrawingContentMap['nodeMap'][elementId];
+if(this.drawRectange(elementMap['startX'], elementMap['startY'] , elementMap['endX'] , elementMap['endY'] ,null,this.mouseMoveX , this.mouseMoveY)){
+this.currentElementHover= elementMap;
+ }
+ if(this.currentElementSelected !== undefined && this.drawChildButton( this.currentElementSelected['startX'], this.currentElementSelected['startY'] , this.currentElementSelected['endX'], this.currentElementSelected['endY'],undefined,this.mouseMoveX , this.mouseMoveY )){
+ this.addChildButtonHover = this.currentElementSelected;
+ }
+});
+this.redraw();
+}
+}
+
+
+function mouseUpFunction(event) {
+this.mouseUpX = event.offsetX;
+this.mouseUpY = event.offsetY;
+this.mouseUp = true;
+if(this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !== undefined && this.mouseMove){
+ this.wholeDrawingContentMap['nodeMap'][this.currentElementSelected['parentId']]['childList'].pop(this.currentElementSelected['uniqueId']);
+ this.wholeDrawingContentMap['nodeMap'][this.currentElementHoverAtDrag['uniqueId']]['childList'].push(this.currentElementSelected['uniqueId']);
+ this.wholeDrawingContentMap['nodeMap'][this.currentElementSelected['uniqueId']]['parentId']=this.currentElementHoverAtDrag['uniqueId'];
+console.log( 'Drag : '+this.currentElementHoverAtDrag['uniqueId'] + ' Selected : '+ this.currentElementSelected['uniqueId']);
+console.log(this.wholeDrawingContentMap['nodeMap']);
+this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+this.redraw();
+}
+this.mouseMove = false;
+}
+
+
+function mouseDownFunction(event){
+this.mouseMove = false;
+this.mouseDownX = event.offsetX;
+this.mouseDownY = event.offsetY;
+this.canvas.save();
+this.showButtons = false;
+this.mouseUp = false;
+this.currentElementHoverAtDrag = undefined;
+this.currentElementSelected = undefined;
+if(this.currentElementHover !== undefined){
+this.showButtons = true;
+this.currentElementSelected  = JSON.parse(JSON.stringify(this.currentElementHover));
+}
+if(this.addChildButtonHover !== undefined){
+this.showButtons = true;
+this.currentElementSelected  = JSON.parse(JSON.stringify(this.addChildButtonHover));
+this.handleAddChildClick(this.addChildButtonHover);
+}
+this.canvas.restore();
+this.redraw();
+}
+
+function handleAddChildClick(parentElement){
+var uniqueId = Math.random();
+var parentUniqueId = parentElement['uniqueId'];
+this.wholeDrawingContentMap['nodeList'].push(uniqueId);
+this.wholeDrawingContentMap['nodeMap'][uniqueId]={};
+this.wholeDrawingContentMap['nodeMap'][uniqueId]['uniqueId']=uniqueId;
+this.wholeDrawingContentMap['nodeMap'][uniqueId]['childList']=[];
+this.wholeDrawingContentMap['nodeMap'][uniqueId]['parentId'] = parentUniqueId;
+this.wholeDrawingContentMap['nodeMap'][parentUniqueId]['childList'].push(uniqueId);
+this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+}
+
+function scrollFunction(event){
+this.redraw();
+}
+
+
+function redraw(){
+this.innerElementDiv.style.marginTop = this.mainElementDiv.scrollTop+'px';
+this.innerElementDiv.style.marginLeft = this.mainElementDiv.scrollLeft+'px';
+this.canvas.setTransform(1,0,0,1,0,0);
+this.canvas.clearRect(0,0,this.canvasElement.width,this.canvasElement.height);
+ this.canvas.translate(-this.mainElementDiv.scrollLeft,-this.mainElementDiv.scrollTop);
+ this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
+ var currentElement= this.wholeDrawingContentMap['nodeMap'][elementId];
+ var startX = currentElement['startX'];
+ var startY = currentElement['startY'];
+ var endX = currentElement['endX'];
+ var endY = currentElement['endY'];
+ this.drawElement(startX, startY , endX , endY,currentElement); 
+ this.canvas.font = "15px Georgia";
+ this.canvas.fillText(currentElement['uniqueId'], startX+5, startY+this.height/2);
+});
+//this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+}
+
+
+
+</script> 
+
+</html>
