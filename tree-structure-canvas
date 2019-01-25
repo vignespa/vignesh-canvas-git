@@ -9,17 +9,28 @@
   top: 8px;
   z-index: -1;
 }
+
+#text-box-input-element {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    padding-right: 5px;
+    padding-bottom: 3px;
+    z-index: 1;
+}
 </style>
 </head>
 
 <body>
-<div id="main-element-div"  style="height:650px; width:1300px;" onscroll="scrollFunction(event)">
+<div id="main-element-div"  style=" width:1500px; height:800px; " onscroll="scrollFunction(event)">
 <div id="inner-element-div">
-<canvas id="main-canvas-element" width="1290" height="640" style="border:1px solid #000000;" onmousemove="mouseMoveFunction(event)" onmousedown = "mouseDownFunction(event)" onmouseup="mouseUpFunction(event)">
+<canvas id="main-canvas-element" width="1490" height="790" style="border:1px solid #000000;" onmousemove="mouseMoveFunction(event)" 
+onmousedown = "mouseDownFunction(event)" onmouseup="mouseUpFunction(event)" ondblclick="mouseDoubleClick(event)">
 </canvas>
 </div>
 </div>
 <canvas id ="drag-cavas-element" width="50" height="50" style="border:1px solid #000000;"></canvas>
+<input id = "text-box-input-element" type="text"  value="" onblur="inputTextBoxBlur()">
 
 </body>
 
@@ -29,6 +40,7 @@ this.canvasElement= document.getElementById("main-canvas-element");
 this.innerElementDiv= document.getElementById("inner-element-div");
 this.mainElementDiv= document.getElementById("main-element-div");
 this.dragCanvasElement =document.getElementById("drag-cavas-element");
+this.textBox = document.getElementById("text-box-input-element");
 this.dragCanvas = this.dragCanvasElement.getContext("2d");
 this.canvas = this.canvasElement.getContext("2d");
 this.width = 180;
@@ -50,6 +62,8 @@ this.dragCanvasElement.width = this.width;
 this.dragCanvasElement.height=this.height;
 this.dragCanvasElement.style.display = 'none';
 
+this.textBox.style.display='none';
+
 this.wholeDrawingContentMap = {};
 
 this.wholeDrawingContentMap={
@@ -62,7 +76,8 @@ this.wholeDrawingContentMap={
 'endY': this.height+2,
 'uniqueId' : 'a',
 'parentId' : null,
-'childList' : []
+'childList' : [],
+'textContent' : ''
 } 
 
 }
@@ -78,6 +93,9 @@ this.mainElementDiv.style.overflow='auto';
 if(currentElement['childList'] !== undefined && currentElement['childList'].length !== 0 ){
 currentElement['childList'].forEach(function(childElement){
 var wholeDrawing = this.wholeDrawingContentMap['nodeMap'];
+if( wholeDrawing[childElement]['textContent'] === undefined){
+wholeDrawing[childElement]['textContent'] = '' ;
+}
 wholeDrawing[childElement]['startX'] =  currentElement['endX'] + this.elementWidthX;
 wholeDrawing[childElement]['endX'] = wholeDrawing[childElement]['startX']+this.width;
 if(currentElement['childList'][0] === childElement){
@@ -201,6 +219,7 @@ this.mouseDownMouseMove = true;
 this.dragCanvasElement.style.marginLeft=this.mouseMoveX+10+ 'px';
 this.dragCanvasElement.style.marginTop=this.mouseMoveY+10+ 'px';
 this.dragCanvasElement.style.display = 'block';
+this.textBox.style.display='none';
 
 this.wholeDrawingContentMap['nodeList'].forEach(function(elementId){
  var elementMapAtDrag = this.wholeDrawingContentMap['nodeMap'][elementId];
@@ -219,9 +238,10 @@ this.mouseUp = true;
 this.mouseDown = false;
 this.dragCanvasElement.style.display = 'none';
 
+
 if(this.mouseDownMouseMove){
-if(this.currentElementHoverAtDrag['uniqueId'] !== this.currentElementSelected['uniqueId'] && 
- this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !== undefined){
+if(this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !== undefined 
+&& this.currentElementHoverAtDrag['uniqueId'] !== this.currentElementSelected['uniqueId']){
  var drawingElementMap = this.wholeDrawingContentMap['nodeMap'];
  var selectedElementUniqueId = this.currentElementSelected['uniqueId'];
  var selectedElementParentUniqueId = this.currentElementSelected['parentId'];
@@ -235,6 +255,9 @@ this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
 this.redraw();
 }
 }
+
+
+
 }
 
 function arrayElementRemove(array , item){
@@ -251,6 +274,8 @@ this.mouseDown = true;
 this.mouseUp = false;
 this.mouseDownMouseMove = false;
 this.currentElementSelected = undefined;
+this.textBox.style.display='none';
+
 
 if(this.currentElementHover !== undefined){
 this.showButtons = true;
@@ -265,10 +290,39 @@ if(this.currentElementSelected !== undefined){
 this.dragCanvas.setTransform(1,0,0,1,0,0)
 this.dragCanvas.clearRect(0,0,this.dragCanvasElement.width , this.dragCanvasElement.height)
  this.dragCanvas.font = "15px Georgia";
- this.dragCanvas.fillText(this.currentElementSelected['uniqueId'], 2+5, 5+this.height/2);
+ this.dragCanvas.fillText(this.currentElementSelected['textContent'], 2+5, 5+this.height/2);
 }
 this.redraw();
 }
+
+function inputTextBoxBlur(){
+if(this.currentTextBoxElement !== undefined){
+console.log(this.textBox.value);
+this.wholeDrawingContentMap['nodeMap'][this.currentTextBoxElement['uniqueId']]['textContent'] = this.textBox.value;
+this.currentTextBoxElement = undefined;
+this.redraw();
+}
+}
+
+
+function mouseDoubleClick(event){
+this.mouseDoubleX = event.offsetX;
+this.mouseDoubleY = event.offsetY;
+this.mouseDoubleClicked = true;
+this.textBox.value = '';
+if(this.currentElementSelected !== undefined){
+this.currentTextBoxElement = JSON.parse(JSON.stringify(this.currentElementSelected));
+if(this.currentElementSelected['textContent'] !== ''){
+this.textBox.value = this.currentElementSelected['textContent'];
+}
+this.textBox.style.display='block';
+this.textBox.style.marginTop = this.currentElementSelected['startY'] -this.mainElementDiv.scrollTop +'px';
+this.textBox.style.marginLeft= this.currentElementSelected['startX'] -this.mainElementDiv.scrollLeft +'px';
+this.textBox.focus();
+}
+
+}
+
 
 function handleAddChildClick(parentElement){
 var uniqueId = Math.random();
@@ -283,6 +337,7 @@ this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
 }
 
 function scrollFunction(event){
+this.textBox.style.display='none';
 this.redraw();
 }
 
@@ -301,7 +356,7 @@ this.canvas.clearRect(0,0,this.canvasElement.width,this.canvasElement.height);
  var endY = currentElement['endY'];
  this.drawElement(startX, startY , endX , endY,currentElement); 
  this.canvas.font = "15px Georgia";
- this.canvas.fillText(currentElement['uniqueId'], startX+5, startY+this.height/2);
+ this.canvas.fillText(currentElement['textContent'], startX+5, startY+this.height/2 +5);
 });
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
 }
