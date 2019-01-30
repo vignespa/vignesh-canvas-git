@@ -2,6 +2,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
 <style>
 #drag-cavas-element {
   position: absolute;
@@ -13,9 +15,9 @@
 #text-box-input-element {
     position: absolute;
     left: 10px;
-    top: 10px;
-    padding-right: 5px;
-    padding-bottom: 3px;
+    top: 9px;
+    padding-right: 76px;
+    padding-bottom: 12px;
     z-index: 1;
 }
 </style>
@@ -43,17 +45,18 @@ this.dragCanvasElement =document.getElementById("drag-cavas-element");
 this.textBox = document.getElementById("text-box-input-element");
 this.dragCanvas = this.dragCanvasElement.getContext("2d");
 this.canvas = this.canvasElement.getContext("2d");
-this.width = 180;
-this.height = 25;
+this.width = 250;
+this.height = 32;
 this.noChild =false;
 this.elementWidthX = 30;
 this.elementWidthY = 10;
-this.radius= 6 ;
-this.elementArcX= 6;
+this.radius= 8 ;
+this.elementArcX= 15;
 this.elementArcY= 11;
 this.showButtons = false;
 this.currentElementHover = undefined;
 this.currentElementSelected = undefined;
+this.deleteNodeIdList = [];
 
 this.mouseUp = false;
 //this.dragCanvasElement.style.width = this.width+'px';
@@ -143,9 +146,25 @@ function drawElement(startX, startY , endX , endY,currentElement ,mouseX , mouse
 this.drawRectange(startX, startY , endX , endY,currentElement ,mouseX , mouseY );
 if(this.showButtons){
 this.drawChildButton(startX, startY , endX , endY ,currentElement ,mouseX , mouseY);
+this.drawDeleteButton(startX, startY , endX , endY ,currentElement ,mouseX , mouseY);
 }
 }
 
+function highLightSelectedElement(){
+if(this.currentElementSelected !==undefined){
+var startX = this.currentElementSelected['startX'];
+ var startY = this.currentElementSelected['startY'];
+ var endX = this.currentElementSelected['endX'];
+ var endY = this.currentElementSelected['endY'];
+this.canvas.save();
+this.canvas.beginPath();
+this.canvas.fillStyle = "#e6f2ff";
+this.canvas.rect(startX,startY,this.width,this.height);
+this.canvas.fillRect(startX+1,startY+1,this.width-2,this.height-2);
+this.canvas.closePath();
+this.canvas.restore();
+}
+}
 
 function drawRectange(startX, startY , endX , endY ,currentElement,mouseX , mouseY){
 this.canvas.beginPath();
@@ -171,7 +190,8 @@ return this.canvas.isPointInPath(mouseX,mouseY);
 }
 
 function drawChildButton(startX, startY , endX , endY ,currentElement,mouseX , mouseY){
-if( this.currentElementSelected !==undefined && currentElement !== undefined &&  this.currentElementSelected['uniqueId'] === currentElement['uniqueId'] && !mouseX){
+if( this.currentElementSelected !==undefined && currentElement !== undefined &&
+  this.currentElementSelected['uniqueId'] === currentElement['uniqueId'] && !mouseX){
 this.canvas.beginPath();
 this.canvas.arc(endX+this.elementArcX, (startY+(this.height/2)), this.radius, 0, 2 * Math.PI);
 this.canvas.stroke();
@@ -184,13 +204,38 @@ this.canvas.stroke();
 
 if(this.addChildButtonHover !== undefined){
 this.canvasElement.style.cursor = 'pointer';
-}else{
+}else if(this.deleteChildButtonHover === undefined){
 this.canvasElement.style.cursor ='context-menu';
 }
 }
 else{
 this.canvas.beginPath();
-this.canvas.rect(endX, (startY+(this.height/2) -this.radius), 2*this.radius , 2*this.radius);
+this.canvas.rect(endX+this.elementArcX-this.radius, (startY+(this.height/2) -this.radius), 2*this.radius , 2*this.radius);
+return this.canvas.isPointInPath(mouseX,mouseY);
+}
+}
+
+
+function drawDeleteButton(startX, startY , endX , endY ,currentElement,mouseX , mouseY){
+if( this.currentElementSelected !==undefined && currentElement !== undefined &&  this.currentElementSelected['uniqueId'] === currentElement['uniqueId'] && !mouseX){
+ this.highLightSelectedElement();
+this.canvas.beginPath();
+this.canvas.arc(endX-this.elementArcX, (startY+(this.height/2)), this.radius, 0, 2 * Math.PI);
+this.canvas.stroke();
+this.canvas.beginPath();
+this.canvas.moveTo(endX-this.elementArcX-this.radius,(startY+(this.height/2)));
+this.canvas.lineTo(endX-this.elementArcX+this.radius,(startY+this.height/2));
+this.canvas.stroke();
+
+if(this.deleteChildButtonHover !== undefined){
+this.canvasElement.style.cursor = 'pointer';
+}else if(this.addChildButtonHover === undefined){
+this.canvasElement.style.cursor ='context-menu';
+}
+}
+else{
+this.canvas.beginPath();
+this.canvas.rect(endX-this.elementArcX-this.radius, (startY+(this.height/2) -this.radius), 2*this.radius , 2*this.radius);
 return this.canvas.isPointInPath(mouseX,mouseY);
 }
 }
@@ -201,6 +246,7 @@ this.mouseMoveY = event.offsetY;
 this.currentElementHoverAtDrag=undefined;
 this.currentElementHover = undefined;
 this.addChildButtonHover = undefined;
+this.deleteChildButtonHover = undefined;
 this.mouseMove = true;
 
 if(this.currentElementSelected === undefined || this.mouseUp){
@@ -211,6 +257,11 @@ this.currentElementHover= elementMap;
  }
  if(this.currentElementSelected !== undefined && this.drawChildButton( this.currentElementSelected['startX'], this.currentElementSelected['startY'] , this.currentElementSelected['endX'], this.currentElementSelected['endY'],undefined,this.mouseMoveX , this.mouseMoveY )){
  this.addChildButtonHover = this.currentElementSelected;
+
+ }
+  if(this.currentElementSelected !== undefined && this.drawDeleteButton( this.currentElementSelected['startX'], this.currentElementSelected['startY'] , this.currentElementSelected['endX'], this.currentElementSelected['endY'],undefined,this.mouseMoveX , this.mouseMoveY )){
+ this.deleteChildButtonHover = this.currentElementSelected;
+
  }
 });
 this.redraw();
@@ -286,6 +337,18 @@ this.showButtons = true;
 this.currentElementSelected  = JSON.parse(JSON.stringify(this.addChildButtonHover));
 this.handleAddChildClick(this.currentElementSelected);
 }
+if(this.deleteChildButtonHover !== undefined){
+  this.showButtons = true;
+  this.currentElementSelected  = JSON.parse(JSON.stringify(this.deleteChildButtonHover));
+ 
+ var wholeDrawingMap = this.wholeDrawingContentMap['nodeMap'];
+  var parentElementId  = wholeDrawingMap[this.currentElementSelected['uniqueId']]['parentId'];
+ var parentElementChildIdList = JSON.parse(JSON.stringify(wholeDrawingMap[parentElementId]['childList']));
+ var newChildIdList = this.arrayElementRemove(parentElementChildIdList,this.currentElementSelected['uniqueId']);
+ wholeDrawingMap[parentElementId]['childList']= newChildIdList;
+ this.handleDeleteClick(this.currentElementSelected['uniqueId']);
+}
+
 if(this.currentElementSelected !== undefined){
 this.dragCanvas.setTransform(1,0,0,1,0,0)
 this.dragCanvas.clearRect(0,0,this.dragCanvasElement.width , this.dragCanvasElement.height)
@@ -297,7 +360,6 @@ this.redraw();
 
 function inputTextBoxBlur(){
 if(this.currentTextBoxElement !== undefined){
-console.log(this.textBox.value);
 this.wholeDrawingContentMap['nodeMap'][this.currentTextBoxElement['uniqueId']]['textContent'] = this.textBox.value;
 this.currentTextBoxElement = undefined;
 this.redraw();
@@ -310,7 +372,7 @@ this.mouseDoubleX = event.offsetX;
 this.mouseDoubleY = event.offsetY;
 this.mouseDoubleClicked = true;
 this.textBox.value = '';
-if(this.currentElementSelected !== undefined){
+if(this.currentElementSelected !== undefined && !this.addChildButtonHover && !this.deleteChildButtonHover){
 this.currentTextBoxElement = JSON.parse(JSON.stringify(this.currentElementSelected));
 if(this.currentElementSelected['textContent'] !== ''){
 this.textBox.value = this.currentElementSelected['textContent'];
@@ -334,7 +396,22 @@ this.wholeDrawingContentMap['nodeMap'][uniqueId]['childList']=[];
 this.wholeDrawingContentMap['nodeMap'][uniqueId]['parentId'] = parentUniqueId;
 this.wholeDrawingContentMap['nodeMap'][parentUniqueId]['childList'].push(uniqueId);
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+this.redraw();
 }
+
+
+
+function handleDeleteClick(currentElementToDeleteUniqueId){
+var wholeDrawingMap = this.wholeDrawingContentMap['nodeMap'];
+this.deleteNodeIdList.push(currentElementToDeleteUniqueId);
+var currentElementToDelete = wholeDrawingMap[currentElementToDeleteUniqueId];
+if(currentElementToDelete['childList'] !== undefined && currentElementToDelete['childList'].length !== 0 ){
+currentElementToDelete['childList'].forEach(function(childElementToDeleteUniqueId){
+this.handleDeleteClick(childElementToDeleteUniqueId);
+});
+}
+}
+
 
 function scrollFunction(event){
 this.textBox.style.display='none';
@@ -359,9 +436,23 @@ this.canvas.clearRect(0,0,this.canvasElement.width,this.canvasElement.height);
  this.canvas.fillText(currentElement['textContent'], startX+5, startY+this.height/2 +5);
 });
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+if(this.deleteNodeIdList.length !== 0){
+this.deleteMultipleNodes();
+}
 }
 
-
+function deleteMultipleNodes(){
+var nodeIdList = JSON.parse(JSON.stringify(this.wholeDrawingContentMap['nodeList']));
+this.deleteNodeIdList.forEach(function(deleteNodeId){
+var newChildIdList = this.arrayElementRemove(nodeIdList,deleteNodeId);
+nodeIdList = newChildIdList;
+delete this.wholeDrawingContentMap['nodeMap'][deleteNodeId];
+});
+this.wholeDrawingContentMap['nodeList'] = nodeIdList;
+this.deleteNodeIdList = [];
+this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+this.redraw();
+}
 
 </script> 
 
