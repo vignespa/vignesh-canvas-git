@@ -20,24 +20,29 @@
     padding-bottom: 12px;
     z-index: 1;
 }
+
+#canvas-element-body {
+    background-color: #efeded;
+}
 </style>
 </head>
 
-<body>
+<body id='canvas-element-body'>
+ <script type="text/javascript" src="canvasDrawing.js"></script>
 <div id="main-element-div"  style=" width:1500px; height:800px; " onscroll="scrollFunction(event)">
 <div id="inner-element-div">
-<canvas id="main-canvas-element" width="1490" height="790" style="border:1px solid #000000;" onmousemove="mouseMoveFunction(event)" 
+<canvas id="main-canvas-element" width="1490" height="790"  onmousemove="mouseMoveFunction(event)" 
 onmousedown = "mouseDownFunction(event)" onmouseup="mouseUpFunction(event)" ondblclick="mouseDoubleClick(event)">
 </canvas>
 </div>
 </div>
+
 <canvas id ="drag-cavas-element" width="50" height="50" style="border:1px solid #000000;"></canvas>
 <input id = "text-box-input-element" type="text"  value="" onblur="inputTextBoxBlur()">
 
 </body>
 
 <script>
-
 this.canvasElement= document.getElementById("main-canvas-element");
 this.innerElementDiv= document.getElementById("inner-element-div");
 this.mainElementDiv= document.getElementById("main-element-div");
@@ -53,10 +58,13 @@ this.elementWidthY = 10;
 this.radius= 8 ;
 this.elementArcX= 15;
 this.elementArcY= 11;
+this.shadowBlurRange = 8;
 this.showButtons = false;
+this.roundRectRadius = 10;
 this.currentElementHover = undefined;
 this.currentElementSelected = undefined;
 this.deleteNodeIdList = [];
+
 
 this.mouseUp = false;
 //this.dragCanvasElement.style.width = this.width+'px';
@@ -159,8 +167,8 @@ var startX = this.currentElementSelected['startX'];
 this.canvas.save();
 this.canvas.beginPath();
 this.canvas.fillStyle = "#e6f2ff";
-this.canvas.rect(startX,startY,this.width,this.height);
-this.canvas.fillRect(startX+1,startY+1,this.width-2,this.height-2);
+this.darwRoundRect(this.canvas,startX,startY,this.width,this.height,this.roundRectRadius);
+this.canvas.fill();
 this.canvas.closePath();
 this.canvas.restore();
 }
@@ -171,21 +179,23 @@ this.canvas.beginPath();
  if(!mouseX &&  this.currentElementHover !==undefined &&  this.currentElementHover['uniqueId'] === currentElement['uniqueId'] ){
 this.canvas.save();
 this.canvas.clearRect(startX,startY,this.width,this.height);
-this.canvas.shadowBlur = 10;
-this.canvas.shadowColor = "black";
-this.canvas.rect(startX,startY,this.width,this.height);
+this.canvas.shadowBlur = this.shadowBlurRange;
+this.canvas.shadowColor = "gray";
+this.darwRoundRect(this.canvas,startX,startY,this.width,this.height,this.roundRectRadius);
 this.canvas.fillStyle = "white";
-this.canvas.fillRect(startX+1,startY+1,this.width-1,this.height-1);
+this.canvas.fill();
 this.canvas.restore();
 }
 else{
-this.canvas.rect(startX,startY,this.width,this.height);
+this.darwRoundRect(this.canvas,startX,startY,this.width,this.height,this.roundRectRadius);
 }
 if(!mouseX){
+this.canvas.fillStyle= "white";
+this.canvas.fill();
 this.canvas.stroke();
 }
 else{
-return this.canvas.isPointInPath(mouseX,mouseY);
+return this.darwRoundRect(this.canvas,startX,startY,this.width,this.height,this.roundRectRadius , mouseX,mouseY);
 }
 }
 
@@ -289,7 +299,6 @@ this.mouseUp = true;
 this.mouseDown = false;
 this.dragCanvasElement.style.display = 'none';
 
-
 if(this.mouseDownMouseMove){
 if(this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !== undefined 
 && this.currentElementHoverAtDrag['uniqueId'] !== this.currentElementSelected['uniqueId']){
@@ -303,12 +312,10 @@ if(this.currentElementHoverAtDrag !== undefined && this.currentElementSelected !
  drawingElementMap[currentElementHoverAtDragUniqueId]['childList'].push(selectedElementUniqueId);
  drawingElementMap[selectedElementUniqueId]['parentId']=currentElementHoverAtDragUniqueId;
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
+this.currentElementSelected = JSON.parse(JSON.stringify(this.wholeDrawingContentMap['nodeMap'][this.currentElementSelected['uniqueId']]));
 this.redraw();
 }
 }
-
-
-
 }
 
 function arrayElementRemove(array , item){
@@ -326,7 +333,6 @@ this.mouseUp = false;
 this.mouseDownMouseMove = false;
 this.currentElementSelected = undefined;
 this.textBox.style.display='none';
-
 
 if(this.currentElementHover !== undefined){
 this.showButtons = true;
