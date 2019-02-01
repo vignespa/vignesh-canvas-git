@@ -16,13 +16,13 @@
     position: absolute;
     left: 10px;
     top: 9px;
-    padding-right: 76px;
-    padding-bottom: 12px;
+    padding-right: 73px;
+    padding-bottom: 10px;
     z-index: 1;
 }
 
 #canvas-element-body {
-    background-color: #efeded;
+    background-color: #c5c5c5;
 }
 </style>
 </head>
@@ -359,6 +359,7 @@ if(this.currentElementSelected !== undefined){
 this.dragCanvas.setTransform(1,0,0,1,0,0)
 this.dragCanvas.clearRect(0,0,this.dragCanvasElement.width , this.dragCanvasElement.height)
  this.dragCanvas.font = "15px Georgia";
+ this.dragCanvas.fillStyle='black';
  this.dragCanvas.fillText(this.currentElementSelected['textContent'], 2+5, 5+this.height/2);
 }
 this.redraw();
@@ -439,6 +440,7 @@ this.canvas.clearRect(0,0,this.canvasElement.width,this.canvasElement.height);
  var endY = currentElement['endY'];
  this.drawElement(startX, startY , endX , endY,currentElement); 
  this.canvas.font = "15px Georgia";
+  this.canvas.fillStyle='black';
  this.canvas.fillText(currentElement['textContent'], startX+5, startY+this.height/2 +5);
 });
 this.calculatePosition(this.wholeDrawingContentMap['nodeMap']['a']);
